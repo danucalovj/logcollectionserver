@@ -33,3 +33,27 @@ Java + Logstash + ElasticSearch will consume a good deal of memory so micro inst
 Also... if for production use... use filebeat for log shipment rather than rsyslog - the $AllowSender feature in rsyslog is a primitive way of blocking IPs from sending logs to your log server, and bad packets, the last thing you want is your server to get a DoS, or a flood of bad data taking up your entire disk space, or even worse, your juicy network logs to be harvested by bad peeps! So, at the very least use UFW to restrict incoming connections, OR use filebeat for secured TLS connections between client/server. 
 
 If this is a private/on-premise + cloud deployment: My personal recommended deployment for this is a client side VM with rsyslog open on UDP/TCP, have local servers dump logs to this server, then create a reverse SSH tunnel to the cloud server from the client side server, and pass traffic through the tunnel (local forward:port > remote:port) through filebeat or rsyslog - don't risk it.
+
+### Usage
+
+On the server receiving all the logs, download this script and run:
+> chmod +x install.sh
+
+> ./install.sh
+
+Type in the client system's IP that will be sending logs to this server. Note: This is the NAT IP if behind a firewall.
+
+When done, test Logstash and ElasticSearch:
+> sudo service logstash configtest
+
+> curl -X GET 'http://localhost:9200'
+
+Run netstat -an | grep 514 and make sure your server is listening on 514
+
+On client server, make sure you've configured rsyslog to send logs to this server by creating a configuration under /etc/rsyslog.d/<XX-YOUR_CONFIGURATION_FILE.conf>. Configure this server IP as a rsyslog server:
+> \*.\*   @<SERVER_IP>:514
+
+Then restart rsyslog on the client server:
+> sudo service rsyslog restart
+
+All set! Any logs that end up on your client system (whether local or forwarded from other servers) are shipped to your ElasticSearch server. Remember to configure the client server for rsyslog reception if ingesting logs from other servers/devices on the local network.
