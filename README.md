@@ -41,6 +41,9 @@ On the server receiving all the logs, download this script and run:
 
 > ./install.sh
 
+Or you can also download the raw file from GitHub and run the install script automatically:
+> curl -sSL https://raw.githubusercontent.com/danucalovj/logcollectionserver/master/install.sh | sh
+
 Type in the client system's IP that will be sending logs to this server. Note: This is the NAT IP if behind a firewall.
 
 When done, test Logstash and ElasticSearch:
