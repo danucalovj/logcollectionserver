@@ -12,7 +12,7 @@ sudo htpasswd -cb /etc/nginx/htpasswd.users kibanaadmin UseASecurePassword
 echo "" > /etc/nginx/sites-available/default
 echo "server {" >> /etc/nginx/sites-available/default
 echo "    listen 80;" >> /etc/nginx/sites-available/default
-echo "    auth_basic /"Restricted Access/";" >> /etc/nginx/sites-available/default
+echo "    auth_basic \"Restricted Access\";" >> /etc/nginx/sites-available/default
 echo "    auth_basic_user_file /etc/nginx/htpasswd.users;" >> /etc/nginx/sites-available/default
 echo "    location / {" >> /etc/nginx/sites-available/default
 echo "        proxy_pass http://localhost:5601;" >> /etc/nginx/sites-available/default
