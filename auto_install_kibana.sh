@@ -17,10 +17,10 @@ echo "    auth_basic_user_file /etc/nginx/htpasswd.users;" >> /etc/nginx/sites-a
 echo "    location / {" >> /etc/nginx/sites-available/default
 echo "        proxy_pass http://localhost:5601;" >> /etc/nginx/sites-available/default
 echo "        proxy_http_version 1.1;" >> /etc/nginx/sites-available/default
-echo "        proxy_set_header Upgrade $http_upgrade;" >> /etc/nginx/sites-available/default
+echo "        proxy_set_header Upgrade \$http_upgrade;" >> /etc/nginx/sites-available/default
 echo "        proxy_set_header Connection 'upgrade';" >> /etc/nginx/sites-available/default
-echo "        proxy_set_header Host $host;" >> /etc/nginx/sites-available/default
-echo "        proxy_cache_bypass $http_upgrade;" >> /etc/nginx/sites-available/default        
+echo "        proxy_set_header Host \$host;" >> /etc/nginx/sites-available/default
+echo "        proxy_cache_bypass \$http_upgrade;" >> /etc/nginx/sites-available/default        
 echo "    }" >> /etc/nginx/sites-available/default
 echo "}" >> /etc/nginx/sites-available/default
 sudo service nginx restart
