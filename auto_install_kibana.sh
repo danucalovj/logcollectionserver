@@ -1,12 +1,28 @@
 #!/bin/bash
+
+# Client IP Configuration
 export CLIENT_SERVER_IP=1.2.3.4
+
+# Add GPG Keys
 wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+
+# Updates Repository Sources
 echo "deb http://packages.elastic.co/kibana/4.4/debian stable main" | sudo tee -a /etc/apt/sources.list.d/kibana-4.4.x.list
+sudo add-apt-repository -y ppa:webupd8team/java
+echo "deb http://packages.elastic.co/elasticsearch/2.x/debian stable main" | sudo tee -a /etc/apt/sources.list.d/elasticsearch-2.x.list
+echo 'deb http://packages.elastic.co/logstash/2.2/debian stable main' | sudo tee /etc/apt/sources.list.d/logstash-2.2.x.list
+echo "deb https://packages.elastic.co/beats/apt stable main" |  sudo tee -a /etc/apt/sources.list.d/beats.list
+
+# Apt-Get Update Everything
 sudo apt-get update
+
+# Install Kibana
 sudo apt-get -y install kibana
 sed -i 's@#server.host: "0.0.0.0"@server.host: "localhost"@g' /opt/kibana/config/kibana.yml
 sudo update-rc.d kibana defaults 96 9
 sudo service kibana start
+
+# Install NGINX
 sudo apt-get -y install nginx apache2-utils
 sudo htpasswd -cb /etc/nginx/htpasswd.users kibanaadmin UseASecurePassword
 echo "" > /etc/nginx/sites-available/default
@@ -24,19 +40,20 @@ echo "        proxy_cache_bypass \$http_upgrade;" >> /etc/nginx/sites-available/
 echo "    }" >> /etc/nginx/sites-available/default
 echo "}" >> /etc/nginx/sites-available/default
 sudo service nginx restart
-sudo add-apt-repository -y ppa:webupd8team/java
-sudo apt-get update
+
+# Install Java
 echo debconf shared/accepted-oracle-license-v1-1 select true | sudo debconf-set-selections
 echo debconf shared/accepted-oracle-license-v1-1 seen true | sudo debconf-set-selections
 sudo apt-get -y install oracle-java8-installer
-wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
-echo "deb http://packages.elastic.co/elasticsearch/2.x/debian stable main" | sudo tee -a /etc/apt/sources.list.d/elasticsearch-2.x.list
-sudo apt-get update && sudo apt-get -y install elasticsearch
+
+# Install ElasticSearch
+sudo apt-get -y install elasticsearch
 echo "network.host: localhost" >> /etc/elasticsearch/elasticsearch.yml
 sudo service elasticsearch restart
 sudo update-rc.d elasticsearch defaults 95 10
-echo 'deb http://packages.elastic.co/logstash/2.2/debian stable main' | sudo tee /etc/apt/sources.list.d/logstash-2.2.x.list
-sudo apt-get update && sudo apt-get -y install logstash
+
+# Install Logstash
+sudo apt-get -y install logstash
 sudo mkdir -p /etc/pki/tls/certs
 sudo mkdir /etc/pki/tls/private
 sed -i 's/subjectAltName/#subjectAltName/g' /etc/ssl/openssl.cnf
@@ -44,7 +61,12 @@ echo -n "subjectAltName = IP: " >> subjectAltName.txt
 /sbin/ifconfig eth0 | grep 'inet addr' | cut -d: -f2 | awk '{print $1}' >> subjectAltName.txt
 cat subjectAltName.txt >> /etc/ssl/openssl.cnf
 rm subjectAltName.txt
+
+# Logstash SSL Keys
 sudo openssl req -config /etc/ssl/openssl.cnf -x509 -days 3650 -batch -nodes -newkey rsa:2048 -keyout /etc/pki/tls/private/logstash-forwarder.key -out /etc/pki/tls/certs/logstash-forwarder.crt
+
+# Install Logstash - Continued
+# 02-beats-input.conf
 echo "input {" > /etc/logstash/conf.d/02-beats-input.conf
 echo "  beats {" >> /etc/logstash/conf.d/02-beats-input.conf
 echo "    port => 5044" >> /etc/logstash/conf.d/02-beats-input.conf
@@ -53,6 +75,7 @@ echo "    ssl_certificate => \"/etc/pki/tls/certs/logstash-forwarder.crt"\" >> /
 echo "    ssl_key => \"/etc/pki/tls/private/logstash-forwarder.key"\" >> /etc/logstash/conf.d/02-beats-input.conf
 echo "  }" >> /etc/logstash/conf.d/02-beats-input.conf
 echo "}" >> /etc/logstash/conf.d/02-beats-input.conf
+# 10-syslog-filter.conf
 echo "filter {" > /etc/logstash/conf.d/10-syslog-filter.conf
 echo "  if [type] == \"syslog\" {" >> /etc/logstash/conf.d/10-syslog-filter.conf
 echo "    grok {" >> /etc/logstash/conf.d/10-syslog-filter.conf
@@ -66,6 +89,7 @@ echo "      match => [ \"syslog_timestamp\", \"MMM  d HH:mm:ss\", \"MMM dd HH:mm
 echo "    }" >> /etc/logstash/conf.d/10-syslog-filter.conf
 echo "  }" >> /etc/logstash/conf.d/10-syslog-filter.conf
 echo "}" >> /etc/logstash/conf.d/10-syslog-filter.conf
+# 30-elasticsearch-output.conf
 echo "output {" > /etc/logstash/conf.d/30-elasticsearch-output.conf
 echo "  elasticsearch {" >> /etc/logstash/conf.d/30-elasticsearch-output.conf
 echo "    hosts => [\"localhost:9200\"]" >> /etc/logstash/conf.d/30-elasticsearch-output.conf
@@ -75,12 +99,14 @@ echo "    index => \"%{[@metadata][beat]}-%{+YYYY.MM.dd}\"" >> /etc/logstash/con
 echo "    document_type => \"%{[@metadata][type]}\"" >> /etc/logstash/conf.d/30-elasticsearch-output.conf
 echo "  }" >> /etc/logstash/conf.d/30-elasticsearch-output.conf
 echo "}" >> /etc/logstash/conf.d/30-elasticsearch-output.conf
+# Logtash Service Restart
 sudo service logstash configtest
 sudo service logstash restart
 sudo update-rc.d logstash defaults 96 9
-echo "deb https://packages.elastic.co/beats/apt stable main" |  sudo tee -a /etc/apt/sources.list.d/beats.list
-wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
-sudo apt-get update && sudo apt-get -y install filebeat
+
+# Install Filebeat
+sudo apt-get -y install filebeat
+# filebeat.yml
 echo "filebeat:" > /etc/filebeat/filebeat.yml        
 echo "  prospectors:" >> /etc/filebeat/filebeat.yml
 echo "    -" >> /etc/filebeat/filebeat.yml  
@@ -99,19 +125,27 @@ echo "shipper:" >> /etc/filebeat/filebeat.yml
 echo "logging:" >> /etc/filebeat/filebeat.yml  
 echo "  files:" >> /etc/filebeat/filebeat.yml  
 echo "    rotateeverybytes: 10485760 # = 10MB" >> /etc/filebeat/filebeat.yml
-curl -O https://gist.githubusercontent.com/thisismitch/3429023e8438cc25b86c/raw/d8c479e2a1adcea8b1fe86570e42abab0f10f364/filebeat-index-template.json
+# Filebeat Template
+curl -O https://raw.githubusercontent.com/danucalovj/logcollectionserver/master/filebeat-index-template.json
 curl -XPUT 'http://localhost:9200/_template/filebeat?pretty' -d@filebeat-index-template.json
+# Filebeat Service Restart
 sudo service filebeat restart
 sudo update-rc.d filebeat defaults 95 10
+
+# Rsyslog Configuration
+# UDP 514 Input
 echo "module(load=\"imudp\")" >> /etc/rsyslog.d/99-logstashelastic.conf                                                                             
 echo "input(type=\"imudp\" port=\"514\")" >> /etc/rsyslog.d/99-logstashelastic.conf
+# TCP 514 Input
 echo "module(load=\"imtcp\")" >> /etc/rsyslog.d/99-logstashelastic.conf                                                             
 echo "input(type=\"imtcp\" port=\"514\")" >> /etc/rsyslog.d/99-logstashelastic.conf
+# Allowed Sender (Client IP)
 echo -n "\$AllowedSender TCP, " >> AllowedSender.txt
 echo "$CLIENT_SERVER_IP" >> AllowedSender.txt
 echo -n "\$AllowedSender UDP, " >> AllowedSender.txt
 echo "$CLIENT_SERVER_IP" >> AllowedSender.txt
 cat AllowedSender.txt >> /etc/rsyslog.d/99-logstashelastic.conf
 rm AllowedSender.txt
+# Rsyslog Restart
 sudo service rsyslog restart
-echo "DONE!"
+# Done
