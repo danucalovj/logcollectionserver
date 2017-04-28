@@ -10,20 +10,15 @@ wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add 
 sudo apt-get -y install apt-transport-https
 
 # Updates Repository Sources
-# echo "deb https://artifacts.elastic.co/packages/5.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-5.x.list
-
-echo "deb http://packages.elastic.co/kibana/4.4/debian stable main" | sudo tee -a /etc/apt/sources.list.d/kibana-4.4.x.list
+echo "deb https://artifacts.elastic.co/packages/5.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-5.x.list
 sudo add-apt-repository -y ppa:webupd8team/java
-echo "deb http://packages.elastic.co/elasticsearch/2.x/debian stable main" | sudo tee -a /etc/apt/sources.list.d/elasticsearch-2.x.list
-# echo 'deb http://packages.elastic.co/logstash/2.2/debian stable main' | sudo tee /etc/apt/sources.list.d/logstash-2.2.x.list
-echo "deb https://packages.elastic.co/beats/apt stable main" |  sudo tee -a /etc/apt/sources.list.d/beats.list
 
 # Apt-Get Update Everything
 sudo apt-get update
 
 # Install Kibana
 sudo apt-get -y install kibana
-sed -i 's@#server.host: "0.0.0.0"@server.host: "localhost"@g' /opt/kibana/config/kibana.yml
+sed -i 's@#server.host: "localhost"@server.host: "localhost"@g' /etc/kibana/kibana.yml
 sudo update-rc.d kibana defaults 96 9
 sudo service kibana start
 
@@ -155,4 +150,11 @@ cat AllowedSender.txt >> /etc/rsyslog.d/99-logstashelastic.conf
 rm AllowedSender.txt
 # Rsyslog Restart
 sudo service rsyslog restart
+
+# Restart all services
+sudo service kibana restart
+sudo service elasticsearch restart
+sudo service logstash restart
+sudo service filebeat restart
+
 # Done
