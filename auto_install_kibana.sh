@@ -3,6 +3,26 @@
 # Client IP Configuration
 export CLIENT_SERVER_IP=1.2.3.4
 
+# Install + Configure Extras
+sudo apt-get update
+sudo apt-get -y install jruby
+sudo apt-get -y install ruby
+sudo apt-get -y install ruby-bundler
+sudo gem install bundler
+sudo apt-get -y install python
+curl -sL https://deb.nodesource.com/setup_7.x | sudo -E bash -
+sudo apt-get -y install nodejs
+sudo apt-get -y install build-essential
+sudo apt-get -y install ufw
+
+# Configure UFW
+sudo ufw default allow outgoing
+sudo ufw default deny incoming
+sudo ufw allow 22/tcp
+sudo ufw allow proto tcp from $CLIENT_SERVER_IP to any port 514
+sudo ufw allow proto udp from $CLIENT_SERVER_IP to any port 514
+sudo ufw enable
+
 # Add GPG Keys
 wget -qO - https://packages.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
 
